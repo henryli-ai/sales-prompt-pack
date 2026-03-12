@@ -190,14 +190,23 @@
             border-left: 5px solid;
             border-left-color: var(--primary);
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
         }
 
         .prompt-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-2px);
             box-shadow:
                 0 12px 48px rgba(102, 46, 141, 0.18),
                 0 4px 12px rgba(0, 0, 0, 0.08),
                 inset 0 1px 1px rgba(255, 255, 255, 0.9);
+        }
+
+        .prompt-card.expanded {
+            cursor: default;
+        }
+
+        .prompt-card.expanded:hover {
+            transform: none;
         }
 
         .card-header {
@@ -222,6 +231,50 @@
                 transparent 0%,
                 rgba(255, 255, 255, 0.6) 50%,
                 transparent 100%);
+        }
+
+        /* Expand Button */
+        .expand-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            margin-top: 0.75rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(102, 46, 141, 0.2);
+        }
+
+        .expand-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 46, 141, 0.35);
+        }
+
+        .expand-icon {
+            transition: transform 0.3s;
+            font-size: 1.2em;
+        }
+
+        .prompt-card.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Collapsible Content */
+        .card-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .prompt-card.expanded .card-content {
+            max-height: 5000px;
         }
 
         .card-meta {
@@ -862,7 +915,7 @@
                 }
 
                 return `
-                <div class="prompt-card">
+                <div class="prompt-card" onclick="toggleCard(${index}, event)">
                     <!-- Card Header -->
                     <div class="card-header">
                         <div class="card-meta">
@@ -873,7 +926,7 @@
                         <h2 class="card-title">${prompt['Use Case']}</h2>
                     </div>
 
-                    <!-- Card Body -->
+                    <!-- Card Summary (Always Visible) -->
                     <div class="card-body">
                         ${prompt['When to Use'] ? `
                         <div class="info-block info-block-when">
@@ -882,6 +935,15 @@
                         </div>
                         ` : ''}
 
+                        <button class="expand-btn" onclick="toggleCard(${index}, event)">
+                            <span class="expand-text">展開填寫</span>
+                            <span class="expand-icon">▼</span>
+                        </button>
+                    </div>
+
+                    <!-- Collapsible Content -->
+                    <div class="card-content">
+                        <div class="card-body">
                         ${hasVariables ? `
                         <!-- Step 1: Variables -->
                         <div class="variables-section">
@@ -911,7 +973,7 @@
                                 <div class="section-title">已生成的 Prompt（可直接使用）</div>
                             </div>
                             <div class="prompt-display prompt-display-generated" id="generated-${index}">${escapeHtml(prompt['Prompt Quick ZH'])}</div>
-                            <button class="copy-btn copy-btn-generated" onclick="copyPrompt(document.getElementById('generated-${index}').textContent, this)">
+                            <button class="copy-btn copy-btn-generated" onclick="copyPrompt(document.getElementById('generated-${index}').textContent, this, event)">
                                 📋 複製已生成的 Prompt
                             </button>
                         </div>
@@ -927,12 +989,12 @@
                             ${prompt['Prompt Quick ZH'] && prompt['Prompt Robust ZH'] ? `
                             <div class="template-tabs">
                                 <div class="template-tab ${activeTemplates[index] === 'quick' ? 'active' : ''}"
-                                     onclick="switchTemplate(${index}, 'quick')">
+                                     onclick="switchTemplate(${index}, 'quick', event)">
                                     <div class="template-tab-title">快速版</div>
                                     <div class="template-tab-desc">簡潔好用</div>
                                 </div>
                                 <div class="template-tab ${activeTemplates[index] === 'robust' ? 'active' : ''}"
-                                     onclick="switchTemplate(${index}, 'robust')">
+                                     onclick="switchTemplate(${index}, 'robust', event)">
                                     <div class="template-tab-title">強化版</div>
                                     <div class="template-tab-desc">完整詳細</div>
                                 </div>
@@ -942,7 +1004,7 @@
                             <div class="prompt-display prompt-display-template" id="template-${index}">
                                 ${escapeHtml(prompt['Prompt Quick ZH'] || '')}
                             </div>
-                            <button class="copy-btn copy-btn-template" onclick="copyTemplate(${index}, this)">
+                            <button class="copy-btn copy-btn-template" onclick="copyTemplate(${index}, this, event)">
                                 📋 複製範本
                             </button>
                         </div>
@@ -953,12 +1015,29 @@
                             <div class="notes-content">${prompt.Notes}</div>
                         </div>
                         ` : ''}
+                        </div>
                     </div>
                 </div>
             `}).join('');
         }
 
-        function switchTemplate(cardIndex, type) {
+        function toggleCard(cardIndex, event) {
+            event.stopPropagation();
+            const cards = document.querySelectorAll('.prompt-card');
+            const card = cards[cardIndex];
+
+            if (card) {
+                card.classList.toggle('expanded');
+                const expandText = card.querySelector('.expand-text');
+                if (expandText) {
+                    expandText.textContent = card.classList.contains('expanded') ? '收起' : '展開填寫';
+                }
+            }
+        }
+
+        function switchTemplate(cardIndex, type, event) {
+            if (event) event.stopPropagation();
+
             activeTemplates[cardIndex] = type;
             const filtered = getFilteredPrompts();
             const prompt = filtered[cardIndex];
@@ -975,7 +1054,9 @@
             card.querySelectorAll('.template-tab')[type === 'quick' ? 0 : 1].classList.add('active');
         }
 
-        function copyTemplate(cardIndex, button) {
+        function copyTemplate(cardIndex, button, event) {
+            if (event) event.stopPropagation();
+
             const templateDisplay = document.getElementById(`template-${cardIndex}`);
             copyPrompt(templateDisplay.textContent, button);
         }
@@ -1016,7 +1097,9 @@
             return div.innerHTML;
         }
 
-        function copyPrompt(text, button) {
+        function copyPrompt(text, button, event) {
+            if (event) event.stopPropagation();
+
             navigator.clipboard.writeText(text).then(() => {
                 const originalText = button.innerHTML;
                 button.innerHTML = '✅ 已複製！';
