@@ -1,0 +1,35 @@
+# Node modules
+node_modules/
+package-lock.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+
+# Excel temp files
+~$*.xlsx
+
+# Analysis scripts
+analyze.js
+read_excel.js
+read_all_sheets.js
+
+# JSON data files (keep only the main data)
+prompts_data.json
+Index.json
+Variables.json
+Picklists.json
+cards_data.txt
